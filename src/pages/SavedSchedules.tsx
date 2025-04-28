@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
-import { CalendarIcon, ListIcon } from "lucide-react";
+import { CalendarIcon, ListIcon, Pencil } from "lucide-react";
 import type { ScheduleData } from "@/components/PublicationScheduler";
 
 const SavedSchedules = () => {
@@ -59,6 +59,7 @@ const SavedSchedules = () => {
                     <TableHead>Start Date</TableHead>
                     <TableHead>End Type</TableHead>
                     <TableHead>End Details</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -75,6 +76,13 @@ const SavedSchedules = () => {
                         {schedule.endType === 'on' && schedule.endDate && format(schedule.endDate, 'PPP')}
                         {schedule.endType === 'never' && 'Never'}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <Link to={`/edit-schedule/${index}`}>
+                          <Button variant="ghost" size="icon">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -88,3 +96,4 @@ const SavedSchedules = () => {
 };
 
 export default SavedSchedules;
+
