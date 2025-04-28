@@ -1,5 +1,5 @@
-
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import ScheduleNameInput from "./ScheduleNameInput";
 import DurationControls from "./DurationControls";
@@ -7,7 +7,7 @@ import FrequencySelector from "./FrequencySelector";
 import NamingRules from "./NamingRules";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { CalendarIcon, InfoIcon } from "lucide-react";
+import { CalendarIcon, InfoIcon, ListIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export type FrequencyType = "daily" | "weekly" | "monthly" | "yearly";
@@ -52,6 +52,7 @@ export interface ScheduleData {
 }
 
 const PublicationScheduler = () => {
+  const navigate = useNavigate();
   const [scheduleData, setScheduleData] = useState<ScheduleData>({
     name: "",
     startDate: undefined,
@@ -102,28 +103,40 @@ const PublicationScheduler = () => {
       return;
     }
 
+    // Save to localStorage
+    const existingSchedules = localStorage.getItem("publicationSchedules");
+    const schedules = existingSchedules ? JSON.parse(existingSchedules) : [];
+    schedules.push(scheduleData);
+    localStorage.setItem("publicationSchedules", JSON.stringify(schedules));
+
     // Success case
     toast.success("Schedule saved successfully!");
-    console.log("Saving schedule:", scheduleData);
+    navigate("/saved-schedules");
   };
 
   return (
     <Card className="shadow-lg animate-fade-in">
       <CardHeader className="border-b">
-        <div className="flex items-center">
-          <CardTitle className="text-xl">Create Publication Schedule</CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="ml-2">
-                  <InfoIcon className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Set up a recurring publication schedule for your content or reports.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <CardTitle className="text-xl">Create Publication Schedule</CardTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="ml-2">
+                    <InfoIcon className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>Set up a recurring publication schedule for your content or reports.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Button variant="outline" onClick={() => navigate("/saved-schedules")}>
+            <ListIcon className="mr-2 h-4 w-4" />
+            View Schedules
+          </Button>
         </div>
         <CardDescription>
           Configure how frequently your content will be automatically published
@@ -152,7 +165,7 @@ const PublicationScheduler = () => {
         />
         
         <div className="flex justify-end space-x-3 pt-4 border-t">
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline" onClick={() => navigate("/saved-schedules")}>Cancel</Button>
           <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
             <CalendarIcon className="mr-2 h-4 w-4" />
             Save Schedule
