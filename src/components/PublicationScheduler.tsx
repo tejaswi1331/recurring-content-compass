@@ -86,6 +86,32 @@ const PublicationScheduler = () => {
     namingTemplate: "{Month} {Year}"
   });
 
+  const generateInitialIssues = (schedule: ScheduleData) => {
+    if (schedule.frequency !== 'monthly' || schedule.endType !== 'after') {
+      return [];
+    }
+
+    const issues = [];
+    let currentDate = schedule.startDate;
+
+    for (let i = 0; i < schedule.endAfter; i++) {
+      if (!currentDate) continue;
+
+      const issueDate = new Date(currentDate);
+      issues.push({
+        id: Date.now() + i,
+        name: `${schedule.name} - Issue ${i + 1}`,
+        issueDate: issueDate.toISOString(),
+        volume: `Vol. ${i + 1}`,
+      });
+
+      // Move to next month
+      currentDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1));
+    }
+
+    return issues;
+  };
+
   const handleSave = () => {
     // Validate form
     if (!scheduleData.name.trim()) {
@@ -103,11 +129,20 @@ const PublicationScheduler = () => {
       return;
     }
 
+    // Generate initial issues for monthly schedules
+    const initialIssues = generateInitialIssues(scheduleData);
+
     // Save to localStorage
     const existingSchedules = localStorage.getItem("publicationSchedules");
     const schedules = existingSchedules ? JSON.parse(existingSchedules) : [];
+    const newIndex = schedules.length;
     schedules.push(scheduleData);
     localStorage.setItem("publicationSchedules", JSON.stringify(schedules));
+
+    // Save initial issues if any
+    if (initialIssues.length > 0) {
+      localStorage.setItem(`schedule_${newIndex}_issues`, JSON.stringify(initialIssues));
+    }
 
     // Success case
     toast.success("Schedule saved successfully!");

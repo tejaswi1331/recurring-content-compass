@@ -9,48 +9,61 @@ import IssuesTable from "@/components/IssuesTable";
 import IssueDialog from "@/components/IssueDialog";
 import { toast } from "sonner";
 import type { Issue } from "@/types/schedule";
+import type { ScheduleData } from "@/components/PublicationScheduler";
 
 const EditSchedule = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [schedule, setSchedule] = useState<any>(null);
+  const [schedule, setSchedule] = useState<ScheduleData | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
 
   useEffect(() => {
-    const savedSchedules = localStorage.getItem("publicationSchedules");
-    if (savedSchedules) {
-      const schedules = JSON.parse(savedSchedules);
-      const currentSchedule = schedules[Number(id)];
-      if (currentSchedule) {
-        setSchedule(currentSchedule);
-        // Load issues from localStorage if they exist
-        const savedIssues = localStorage.getItem(`schedule_${id}_issues`);
-        if (savedIssues) {
-          setIssues(JSON.parse(savedIssues));
+    const loadScheduleAndIssues = () => {
+      const savedSchedules = localStorage.getItem("publicationSchedules");
+      if (savedSchedules && id) {
+        const schedules = JSON.parse(savedSchedules);
+        const currentSchedule = schedules[Number(id)];
+        if (currentSchedule) {
+          // Convert dates back to Date objects
+          currentSchedule.startDate = currentSchedule.startDate ? new Date(currentSchedule.startDate) : undefined;
+          currentSchedule.endDate = currentSchedule.endDate ? new Date(currentSchedule.endDate) : undefined;
+          setSchedule(currentSchedule);
+          
+          // Load issues
+          const savedIssues = localStorage.getItem(`schedule_${id}_issues`);
+          if (savedIssues) {
+            setIssues(JSON.parse(savedIssues));
+          }
         }
       }
-    }
+    };
+
+    loadScheduleAndIssues();
   }, [id]);
 
+  const saveIssuesToStorage = (updatedIssues: Issue[]) => {
+    if (id) {
+      localStorage.setItem(`schedule_${id}_issues`, JSON.stringify(updatedIssues));
+    }
+  };
+
   const handleSaveIssue = (issue: Issue) => {
+    let updatedIssues: Issue[];
     if (editingIssue) {
-      // Update existing issue
-      const updatedIssues = issues.map((i) => 
-        i.id === editingIssue.id ? issue : i
-      );
-      setIssues(updatedIssues);
+      updatedIssues = issues.map((i) => i.id === editingIssue.id ? issue : i);
       toast.success("Issue updated successfully");
     } else {
-      // Add new issue
-      setIssues([...issues, { ...issue, id: Date.now() }]);
+      updatedIssues = [...issues, { ...issue, id: Date.now() }];
       toast.success("Issue added successfully");
     }
+    
+    setIssues(updatedIssues);
+    saveIssuesToStorage(updatedIssues);
     setDialogOpen(false);
     setEditingIssue(null);
-    saveIssuesToStorage();
   };
 
   const handleEditIssue = (issue: Issue) => {
@@ -61,12 +74,8 @@ const EditSchedule = () => {
   const handleDeleteIssue = (issueId: number) => {
     const updatedIssues = issues.filter((issue) => issue.id !== issueId);
     setIssues(updatedIssues);
-    saveIssuesToStorage();
+    saveIssuesToStorage(updatedIssues);
     toast.success("Issue deleted successfully");
-  };
-
-  const saveIssuesToStorage = () => {
-    localStorage.setItem(`schedule_${id}_issues`, JSON.stringify(issues));
   };
 
   const filteredIssues = issues.filter((issue) =>
