@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, ArrowLeft } from "lucide-react";
 import IssuesTable from "@/components/IssuesTable";
-import IssueDialog from "@/components/IssueDialog";
 import { toast } from "sonner";
 import type { Issue } from "@/types/schedule";
 import type { ScheduleData } from "@/components/PublicationScheduler";
+import IssueDialog from "@/components/IssueDialog";
 
 const EditSchedule = () => {
   const { id } = useParams();
@@ -53,7 +52,9 @@ const EditSchedule = () => {
   const handleSaveIssue = (issue: Issue) => {
     let updatedIssues: Issue[];
     if (editingIssue) {
-      updatedIssues = issues.map((i) => i.id === editingIssue.id ? issue : i);
+      updatedIssues = issues.map((i) => 
+        i.id === editingIssue.id ? { ...issue, id: editingIssue.id } : i
+      );
       toast.success("Issue updated successfully");
     } else {
       updatedIssues = [...issues, { ...issue, id: Date.now() }];
@@ -76,6 +77,12 @@ const EditSchedule = () => {
     setIssues(updatedIssues);
     saveIssuesToStorage(updatedIssues);
     toast.success("Issue deleted successfully");
+  };
+
+  const handleAddNewSchedule = () => {
+    if (schedule && id) {
+      navigate(`/add-schedule?scheduleName=${encodeURIComponent(schedule.name)}&scheduleIndex=${id}`);
+    }
   };
 
   const filteredIssues = issues.filter((issue) =>

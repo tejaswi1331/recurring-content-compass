@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
@@ -55,61 +54,62 @@ const DurationControls = ({ data, onChange }: DurationControlsProps) => {
           </Popover>
         </div>
 
-        <div className="space-y-3 pt-2">
-          <Label className="text-sm">End</Label>
-          <RadioGroup 
-            value={data.endType} 
-            onValueChange={(value) => handleEndTypeChange(value as EndType)}
-            className="space-y-3"
+        <div className="space-y-2">
+          <Label>End</Label>
+          <RadioGroup
+            value={data.endType}
+            onValueChange={handleEndTypeChange}
+            className="space-y-4"
           >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="never" id="never" />
-              <Label htmlFor="never" className="cursor-pointer">Never</Label>
+            <div className="flex items-start space-x-2">
+              <RadioGroupItem value="after" id="after" className="mt-2" />
+              <div className="space-y-1">
+                <Label htmlFor="after">After</Label>
+                {data.endType === "after" && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Number of occurrences</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={data.endAfter}
+                      onChange={(e) => onChange({ ...data, endAfter: parseInt(e.target.value) || 0 })}
+                      className="w-full mt-1"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="after" id="after" />
-              <Label htmlFor="after" className="cursor-pointer">End after</Label>
-              <Input
-                type="number"
-                min="1"
-                max="100"
-                value={data.endAfter}
-                onChange={(e) => onChange({ ...data, endAfter: parseInt(e.target.value) || 1 })}
-                className="w-20 h-8"
-                disabled={data.endType !== "after"}
-              />
-              <span className="text-gray-600">occurrences</span>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="on" id="on" />
-              <Label htmlFor="on" className="cursor-pointer">End on</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "justify-start text-left font-normal",
-                      !data.endDate && "text-muted-foreground"
-                    )}
-                    disabled={data.endType !== "on"}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {data.endDate ? format(data.endDate, "PPP") : <span>Select end date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={data.endDate}
-                    onSelect={(date) => onChange({ ...data, endDate: date })}
-                    initialFocus
-                    disabled={(date) => date < (data.startDate || new Date())}
-                    className="p-3 pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+            <div className="flex items-start space-x-2">
+              <RadioGroupItem value="on" id="on" className="mt-2" />
+              <div className="space-y-1">
+                <Label htmlFor="on">On date</Label>
+                {data.endType === "on" && (
+                  <div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full mt-1",
+                            !data.endDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {data.endDate ? format(data.endDate, "PPP") : <span>Select end date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={data.endDate}
+                          onSelect={(date) => onChange({ ...data, endDate: date })}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+              </div>
             </div>
           </RadioGroup>
         </div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon, InfoIcon, ListIcon } from "lucide-react";
@@ -12,7 +12,7 @@ import NamingRules from "./NamingRules";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export type FrequencyType = "daily" | "weekly" | "monthly" | "yearly";
-export type EndType = "after" | "on" | "never";
+export type EndType = "after" | "on";
 export type MonthlyType = "day" | "pattern";
 export type YearlyType = "fixed" | "pattern";
 export type WeekdayPosition = "first" | "second" | "third" | "fourth" | "last";
@@ -54,36 +54,30 @@ export interface ScheduleData {
 
 const PublicationScheduler = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const existingScheduleName = searchParams.get('scheduleName');
+  const scheduleIndex = searchParams.get('scheduleIndex');
+
   const [scheduleData, setScheduleData] = useState<ScheduleData>({
-    name: "",
+    name: existingScheduleName || "",
     startDate: undefined,
-    endType: "never",
+    endType: "after",
     endDate: undefined,
     endAfter: 10,
     frequency: "monthly",
-    
-    // Daily
     everyNDays: 1,
-    
-    // Weekly
     everyNWeeks: 1,
     weekdays: ["monday"],
-    
-    // Monthly
     monthlyType: "day",
     everyNMonths: 1,
     dayOfMonth: 1,
     monthlyPosition: "first",
     monthlyWeekday: "monday",
-    
-    // Yearly
     yearlyType: "fixed",
     yearlyMonth: "january",
     dayOfYearlyMonth: 1,
     yearlyPosition: "first",
     yearlyWeekday: "monday",
-
-    // Naming
     namingTemplate: "{Month} {Year}"
   });
 
@@ -156,25 +150,43 @@ const PublicationScheduler = () => {
       return;
     }
 
+    if (scheduleData.endType === "after" && (!scheduleData.endAfter || scheduleData.endAfter <= 0)) {
+      toast.error("Please enter a valid number of occurrences");
+      return;
+    }
+
     if (scheduleData.endType === "on" && !scheduleData.endDate) {
       toast.error("Please select an end date");
       return;
     }
 
-    const initialIssues = generateInitialIssues(scheduleData);
+    const newIssues = generateInitialIssues(scheduleData);
 
-    const existingSchedules = localStorage.getItem("publicationSchedules");
-    const schedules = existingSchedules ? JSON.parse(existingSchedules) : [];
-    const newIndex = schedules.length;
-    schedules.push(scheduleData);
-    localStorage.setItem("publicationSchedules", JSON.stringify(schedules));
+    if (scheduleIndex) {
+      // If we have a scheduleIndex, append to existing issues
+      const existingIssues = localStorage.getItem(`schedule_${scheduleIndex}_issues`);
+      const currentIssues = existingIssues ? JSON.parse(existingIssues) : [];
+      
+      // Append new issues to existing ones
+      const updatedIssues = [...currentIssues, ...newIssues];
+      localStorage.setItem(`schedule_${scheduleIndex}_issues`, JSON.stringify(updatedIssues));
+      
+      toast.success("Issues added successfully!");
+      navigate(`/edit-schedule/${scheduleIndex}`);
+    } else {
+      // Creating a new schedule
+      const existingSchedules = localStorage.getItem("publicationSchedules");
+      const schedules = existingSchedules ? JSON.parse(existingSchedules) : [];
+      const newIndex = schedules.length;
+      schedules.push(scheduleData);
+      localStorage.setItem("publicationSchedules", JSON.stringify(schedules));
 
-    if (initialIssues.length > 0) {
-      localStorage.setItem(`schedule_${newIndex}_issues`, JSON.stringify(initialIssues));
+      if (newIssues.length > 0) {
+        localStorage.setItem(`schedule_${newIndex}_issues`, JSON.stringify(newIssues));
+      }
+      toast.success("Schedule saved successfully!");
+      navigate("/saved-schedules");
     }
-
-    toast.success("Schedule saved successfully!");
-    navigate("/saved-schedules");
   };
 
   return (
@@ -182,7 +194,9 @@ const PublicationScheduler = () => {
       <CardHeader className="border-b">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <CardTitle className="text-xl">Create Publication Schedule</CardTitle>
+            <CardTitle className="text-xl">
+              {existingScheduleName ? 'Add Issues to Schedule' : 'Create Publication Schedule'}
+            </CardTitle>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -202,14 +216,17 @@ const PublicationScheduler = () => {
           </Button>
         </div>
         <CardDescription>
-          Configure how frequently your content will be automatically published
+          {existingScheduleName 
+            ? 'Add more issues to your existing publication schedule'
+            : 'Configure how frequently your content will be automatically published'}
         </CardDescription>
       </CardHeader>
       
       <CardContent className="p-6 space-y-6">
         <ScheduleNameInput 
           value={scheduleData.name} 
-          onChange={(name) => setScheduleData({...scheduleData, name})} 
+          onChange={(name) => setScheduleData({...scheduleData, name})}
+          disabled={!!existingScheduleName}
         />
         
         <DurationControls
@@ -231,7 +248,7 @@ const PublicationScheduler = () => {
           <Button variant="outline" onClick={() => navigate("/saved-schedules")}>Cancel</Button>
           <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
             <CalendarIcon className="mr-2 h-4 w-4" />
-            Save Schedule
+            {existingScheduleName ? 'Add Issues' : 'Save Schedule'}
           </Button>
         </div>
       </CardContent>
