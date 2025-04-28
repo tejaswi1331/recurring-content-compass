@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon, InfoIcon, ListIcon } from "lucide-react";
+import { toast } from "sonner";
+import { addDays, addWeeks, addMonths, addYears, format } from "date-fns";
 import ScheduleNameInput from "./ScheduleNameInput";
 import DurationControls from "./DurationControls";
 import FrequencySelector from "./FrequencySelector";
 import NamingRules from "./NamingRules";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { CalendarIcon, InfoIcon, ListIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export type FrequencyType = "daily" | "weekly" | "monthly" | "yearly";
@@ -87,33 +88,64 @@ const PublicationScheduler = () => {
   });
 
   const generateInitialIssues = (schedule: ScheduleData) => {
-    if (schedule.frequency !== 'monthly' || schedule.endType !== 'after') {
+    if (!schedule.startDate || schedule.endType !== 'after') {
       return [];
     }
 
     const issues = [];
-    let currentDate = schedule.startDate;
+    let currentDate = new Date(schedule.startDate);
+    let count = 0;
 
-    for (let i = 0; i < schedule.endAfter; i++) {
-      if (!currentDate) continue;
-
+    while (count < schedule.endAfter) {
       const issueDate = new Date(currentDate);
-      issues.push({
-        id: Date.now() + i,
-        name: `${schedule.name} - Issue ${i + 1}`,
-        issueDate: issueDate.toISOString(),
-        volume: `Vol. ${i + 1}`,
-      });
+      let shouldAddIssue = false;
 
-      // Move to next month
-      currentDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1));
+      switch (schedule.frequency) {
+        case 'daily':
+          shouldAddIssue = true;
+          currentDate = addDays(currentDate, schedule.everyNDays);
+          break;
+
+        case 'weekly':
+          // For weekly, we need to check if the current day is in the selected weekdays
+          const currentDay = currentDate.getDay();
+          const weekdayIndex = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+          if (schedule.weekdays.includes(weekdayIndex[currentDay] as any)) {
+            shouldAddIssue = true;
+          }
+          if (currentDate === schedule.startDate || shouldAddIssue) {
+            currentDate = addWeeks(currentDate, schedule.everyNWeeks);
+          } else {
+            currentDate = addDays(currentDate, 1);
+          }
+          break;
+
+        case 'monthly':
+          shouldAddIssue = true;
+          currentDate = addMonths(currentDate, schedule.everyNMonths);
+          break;
+
+        case 'yearly':
+          shouldAddIssue = true;
+          currentDate = addYears(currentDate, 1);
+          break;
+      }
+
+      if (shouldAddIssue) {
+        issues.push({
+          id: Date.now() + count,
+          name: `${schedule.name} - ${format(issueDate, 'MMM yyyy')}`,
+          issueDate: issueDate.toISOString(),
+          volume: `Vol. ${count + 1}`,
+        });
+        count++;
+      }
     }
 
     return issues;
   };
 
   const handleSave = () => {
-    // Validate form
     if (!scheduleData.name.trim()) {
       toast.error("Please enter a schedule name");
       return;
@@ -129,22 +161,18 @@ const PublicationScheduler = () => {
       return;
     }
 
-    // Generate initial issues for monthly schedules
     const initialIssues = generateInitialIssues(scheduleData);
 
-    // Save to localStorage
     const existingSchedules = localStorage.getItem("publicationSchedules");
     const schedules = existingSchedules ? JSON.parse(existingSchedules) : [];
     const newIndex = schedules.length;
     schedules.push(scheduleData);
     localStorage.setItem("publicationSchedules", JSON.stringify(schedules));
 
-    // Save initial issues if any
     if (initialIssues.length > 0) {
       localStorage.setItem(`schedule_${newIndex}_issues`, JSON.stringify(initialIssues));
     }
 
-    // Success case
     toast.success("Schedule saved successfully!");
     navigate("/saved-schedules");
   };
